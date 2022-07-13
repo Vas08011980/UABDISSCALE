@@ -1,0 +1,200 @@
+---
+title: "User Avatar Bond Discrepancy Questionnaire"
+author: "Taylor Brown"
+date: '2022-04-06'
+output: html_document
+---
+
+EFA completed via Jamovi - No syntax was used
+
+First Step for CFA run packages if already installed 
+```{r echo=FALSE, warning=FALSE, error=FALSE}
+library (lavaan)
+library(lavaanPlot)
+library (semPlot)
+library(semTools)
+library(tidyverse)
+library(psych)
+library(psychTools)
+```
+
+Second - import the dataset and define model
+
+```{r}
+CFAdata<-haven::read_sav("Data.sav")%>%
+  mutate_if(is.character, as.factor)
+describe(CFAdata)
+```
+
+Specify the different models
+```{r, echo=FALSE, warning=FALSE, error=FALSE}
+onefactormodel <- "useravatar =~ W2_Dis1 + W2_Dis2 + W2_Dis6 + W2_Dis7 + W2_Dis8Rev + W2_Dis9 + W2_Dis10Rev + W2_Dis15Rev"
+```
+
+Fit the model and produce the results
+```{r}
+fit1 <- cfa(onefactormodel, data = CFAdata, estimator= "DWLS")
+
+summary(fit1, fit.measures=TRUE, standardized=TRUE)
+```
+
+Produce the modification indices
+```{r echo=FALSE, error=FALSE, warning=FALSE}
+ 
+
+modificationindices(fit1, sort. = TRUE)
+
+```
+
+Produce the reliability indices
+```{r echo=FALSE, error=FALSE, warning=FALSE}
+
+semTools::reliability(fit1)
+
+```
+
+Graph the model via lavaan
+```{r}
+lavaanPlot(model = fit1, edge_options = list(color = "grey"))
+
+```
+Graph the model via semtools
+```{r echo=FALSE, error=FALSE, warning=FALSE}
+semPaths(fit1, whatLabels = "std", layout = "tree2", rotation = 2, sizeLat = 12, sizeInt = 5, sizeMan2 = 5, shapeMan = "square", shapeLat = "circle",node.width = 0.6, asize = 3, edge.label.cex = 0.75, fade = F)
+
+```
+
+#To Repeat the procedure with a different estimator, change the estimator (ML).
+
+
+After having confirmed the model, we will proceed with the IRT
+Step 1 pachages run (if aleardy installed)
+
+```{r echo=FALSE, warning=FALSE, error=FALSE}
+#install.packages("mirt")
+#install.packages("naniar")
+#install.packages("Rcpp")
+library(mirt)
+library(naniar)
+library(Rcpp)
+
+```
+
+
+Define data
+```{r}
+data<-haven::read_sav("Data.sav")%>%
+  mutate_if(is.character, as.factor)
+describe(data)
+view(data)
+
+```
+Then we select only the variables we need for our analysis
+```{r}
+myvars <- c("W2_Dis1", "W2_Dis2", "W2_Dis6", "W2_Dis7", "W2_Dis8Rev", "W2_Dis9", "W2_Dis10Rev", "W2_Dis15Rev"
+)
+data1<-data[myvars]
+describe(data1)
+```
+
+
+re-view data and define the scale
+```{r}
+glimpse(data1)
+
+scale <-(data1)
+
+head(scale, 8) 
+
+```
+
+Fit the graded response model using the 'mirt' R package.
+```{r echo=FALSE, warning=FALSE, error=FALSE}
+
+mod1 <- (mirt(scale, 1, verbose = FALSE, itemtype = 'graded', SE = TRUE))
+
+M2(mod1, type = "C2", calcNull = FALSE, na.rm = TRUE)
+
+```
+
+
+```{r echo=TRUE, error=FALSE, warning=FALSE}
+
+itemfit(mod1, na.rm = TRUE)
+
+```
+
+Examine IRT parameters 
+(0 = non discriminative; 0.01–0.34 = very low; 0.35–0.64 = low; 0.65–1.34 = moderate; 1.35–1.69 = high; >1.70 = very high; Baker, 2001)
+
+```{r echo=FALSE, error=FALSE, warning=FALSE}
+
+IRT_parms <- coef(mod1, IRTpars = TRUE, simplify = TRUE, na.rm=TRUE)
+IRT_parms$items
+
+```
+
+Examine items parameters/loadings and communalities
+
+```{r}
+
+summary(mod1)
+
+```
+
+Produce IRT plots - Category characteristic Curve
+```{r plot1, echo=FALSE, warning=FALSE, error=FALSE}
+
+plot(mod1, type='trace', which.item = c(1,2,3,4,5,6,7,8), facet_items=T, 
+     as.table = TRUE, auto.key=list(points=F, lines=T, columns=4, space = 'top', cex = .8), 
+     theta_lim = c(-3, 3), 
+     main = "")
+
+
+```
+
+
+Produce the Item information Curves
+```{r plot2, echo=FALSE, error=FALSE, warning=FALSE}
+
+plot(mod1, type='infotrace', which.item = c(1,2,3,4,5,6,7,8), facet_items=T, 
+     as.table = TRUE, auto.key=list(points=F, lines=T, columns=1, space = 'right', cex = .8), 
+     theta_lim = c(-3, 3), 
+     main="")
+
+```
+
+Scale information and conditional standard errors
+```{r plot3, echo=FALSE}
+
+plot(mod1, type = 'infoSE', theta_lim = c(-3, 3), 
+     main="")
+
+```
+
+Produce the Conditional reliability if chosen
+```{r plot4, echo=FALSE}
+
+plot(mod1, type = 'rxx', theta_lim = c(-3, 3), 
+     main="" )
+
+## Single IRT reliability is also produced ##
+
+marginal_rxx(mod1)
+
+
+```
+
+Scale characteristic Curve
+```{r plot5, echo=FALSE}
+
+plot(mod1, type = 'score', theta_lim = c(-3, 3), main = "")
+
+```
+
+
+
+# THE END
+
+
+
