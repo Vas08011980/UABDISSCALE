@@ -21,7 +21,7 @@ library(psychTools)
 Second - import the dataset and define model
 
 ```{r}
-CFAdata<-haven::read_sav("Data.sav")%>%
+CFAdata<-haven::read_sav("CFA-Data.sav")%>%
   mutate_if(is.character, as.factor)
 describe(CFAdata)
 ```
